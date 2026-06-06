@@ -115,7 +115,6 @@ def batch_diff_tbls(
         pl.LazyFrame: A concatenated long-format dataframe containing the differences
             from all batches.
     """
-    lambda testarg: testarg**2
     if compare_cols is None:
         compare_cols = list(source.drop(*id_cols).collect_schema().keys())
 
