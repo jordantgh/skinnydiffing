@@ -162,18 +162,13 @@ def scan_path(
 
     if fmt == "parquet":
         scan_target = _path_with_glob(path, glob or "*.parquet")
-        return pl.scan_parquet(
-            scan_target,
-            hive_partitioning=options.get("hive_partitioning", False),
-        )
+        options.setdefault("hive_partitioning", False)
+        return pl.scan_parquet(scan_target, **options)
 
     if fmt == "csv":
         scan_target = _path_with_glob(path, glob or "*.csv")
-        return pl.scan_csv(
-            scan_target,
-            infer_schema_length=options.get("infer_schema_length"),
-            ignore_errors=options.get("ignore_errors", False),
-        )
+        options.setdefault("ignore_errors", False),
+        return pl.scan_csv(scan_target, **options)
 
     if fmt == "readstat":
         if path.is_dir():
