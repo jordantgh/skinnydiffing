@@ -1,4 +1,4 @@
-"""lightweight_table_diff — cell-level table diffing."""
+"""Skinnydiffing — cell-level batched table diffing."""
 
 from .api import diff, diff_lazyframes
 from .core import batch_diff_tbls, diff_tbls

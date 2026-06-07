@@ -1,5 +1,5 @@
 """
-Example runner for lightweight-table-diff using a custom Hive/S3 downloader.
+Example runner for skinnydiffing using a custom Hive/S3 downloader.
 """
 
 import logging
@@ -10,7 +10,7 @@ import boto3
 import polars as pl
 from pyspark.sql import SparkSession
 
-from lightweight_table_diff import run_config
+from skinnydiffing import run_config
 
 logger = logging.getLogger(__name__)
 

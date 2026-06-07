@@ -2,7 +2,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from lightweight_table_diff.dimensions import (
+from skinnydiffing.dimensions import (
     validate_key_uniqueness,
     row_presence_differences,
     column_presence_differences,

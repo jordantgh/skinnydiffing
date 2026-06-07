@@ -1,7 +1,7 @@
 import polars as pl
 from polars.testing import assert_frame_equal
 
-from lightweight_table_diff.core import diff_tbls
+from skinnydiffing.core import diff_tbls
 
 
 class TestCoreDiffing:

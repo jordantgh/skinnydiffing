@@ -164,7 +164,7 @@ def diff_lazyframes(
 
     if keys is None:
         logger.info("No keys provided. Falling back to strict row-index positional diffing.")
-        row_key = "__td_idx"
+        row_key = "__sd_idx"
         source = source.with_row_index(row_key)
         target = target.with_row_index(row_key)
         key_list = [row_key]

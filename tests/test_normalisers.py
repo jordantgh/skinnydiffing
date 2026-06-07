@@ -1,7 +1,7 @@
 import polars as pl
 from polars.testing import assert_frame_equal
 
-from lightweight_table_diff.normalisers import normalise_float_strings
+from skinnydiffing.normalisers import normalise_float_strings
 
 
 class TestNormalisers:

@@ -190,7 +190,7 @@ def scan_path(
         except ImportError:
             raise ImportError(
                 "polars-readstat is required for SAS, Stata, and SPSS files: "
-                "pip install 'lightweight-table-diff[readstat]'"
+                "pip install 'skinnydiffing[readstat]'"
             ) from None
 
         return scan_readstat(str(path), **options)

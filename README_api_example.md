@@ -3,7 +3,7 @@
 The main API is simple:
 
 ```python
-from lightweight_table_diff import diff
+from skinnydiffing import diff
 
 result = diff("source.parquet", "target.parquet", keys="id")
 
@@ -119,7 +119,7 @@ comparisons:
 ```python
 from functools import partial
 
-from lightweight_table_diff import run_config
+from skinnydiffing import run_config
 
 run_config(
     "diff.yml",

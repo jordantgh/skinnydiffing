@@ -3,7 +3,7 @@ from functools import partial
 import polars as pl
 import pytest
 
-from lightweight_table_diff import diff
+from skinnydiffing import diff
 
 
 def test_diff_accepts_polars_dataframes():

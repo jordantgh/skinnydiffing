@@ -1,7 +1,7 @@
 import polars as pl
 from polars.testing import assert_frame_equal
 
-from lightweight_table_diff.api import diff_lazyframes
+from skinnydiffing.api import diff_lazyframes
 
 
 class TestIntegration:
