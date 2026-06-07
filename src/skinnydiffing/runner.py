@@ -42,7 +42,8 @@ def run_comparison(
     result = diff(
         job["source"],
         job["target"],
-        keys=job["keys"],
+        keys=job.get("keys"),
+        positional=job.get("positional", False),
         compare=job.get("compare"),
         exclude=job.get("exclude"),
         normalise=job.get("normalise"),

@@ -20,6 +20,13 @@ result.write("./diff_output_directory")
 Cell differences are always computed for rows present in both datasets. Rows that exist
 only in the source or only in the target are reported separately on the result object.
 
+Join keys are required by default. If you really want strict row-position alignment,
+use the positional parameter:
+
+```python
+result = diff("source.parquet", "target.parquet", positional=True)
+```
+
 Supported inputs:
 
 ```python
@@ -117,6 +124,12 @@ comparisons:
         dataset: people
         period: 2024-01
         side: target
+
+  - name: positional_export
+    source: source_export.csv
+    target: target_export.csv
+    keys: null
+    positional: true
 ```
 
 ```python

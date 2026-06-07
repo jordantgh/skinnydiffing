@@ -133,7 +133,10 @@ def diff_command(
         typer.Option(
             "--compare",
             "-c",
-            help="Comma-separated columns to compare. Defaults to all shared non-key columns.",
+            help=(
+                "Comma-separated columns to compare. Defaults to all shared non-key "
+                "columns."
+            ),
         ),
     ] = None,
     exclude: Annotated[
@@ -219,10 +222,15 @@ def diff_command(
 
     configure_logging(verbose)
 
-    key_list = None if positional else split_csv(keys)
+    key_list = split_csv(keys)
 
     if not positional and not key_list:
         raise typer.BadParameter("Pass --keys id[,id2,...] or use --positional.")
+
+    if positional and key_list:
+        raise typer.BadParameter(
+            "Pass --keys id[,id2,...] or use --positional, not both."
+        )
 
     compare_cols = split_csv(compare)
     exclude_cols = split_csv(exclude)
@@ -250,6 +258,7 @@ def diff_command(
         source,
         target,
         keys=key_list,
+        positional=positional,
         compare=compare_cols,
         exclude=exclude_cols,
         normalise=normalisers,

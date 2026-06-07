@@ -140,7 +140,7 @@ def load_config(path: str | Path) -> list[dict[str, Any]]:
         ValueError: If the file is completely empty.
         TypeError: If the parsed YAML does not evaluate to a top-level dictionary.
     """
-    with open(path, encoding="utf-8") as f:
+    with Path(path).open(encoding="utf-8") as f:
         raw = yaml.safe_load(f)
     if raw is None:
         raise ValueError(f"Config file {path!s} is empty")

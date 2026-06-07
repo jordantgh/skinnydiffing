@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 def diff(
     source: TableLike | Callable[[], TableLike],
     target: TableLike | Callable[[], TableLike],
-    keys: str | Sequence[str] | None,
+    keys: str | Sequence[str] | None = None,
     *,
+    positional: bool = False,
     compare: Sequence[str] | None = None,
     exclude: Sequence[str] | None = None,
     normalise: str | NormaliserFn | Sequence[str | NormaliserFn] | None = None,
@@ -58,7 +59,9 @@ def diff(
         target: The target dataset to compare against the source. Accepts the same formats
             as the `source` argument.
         keys: The column name(s) used to uniquely identify a row across both datasets.
-            If None, rows are compared by strict row position.
+            Required unless `positional=True`.
+        positional: If True, compare rows by strict row position instead of join keys.
+            Cannot be combined with `keys`.
         compare: A specific list of columns to compare. If provided, any columns not in
             this list are completely ignored. Defaults to None (compare all shared
             columns).
@@ -105,6 +108,7 @@ def diff(
         source_lf,
         target_lf,
         keys=keys,
+        positional=positional,
         compare=compare,
         exclude=exclude,
         normalise=normalise,
@@ -119,6 +123,7 @@ def diff_lazyframes(
     target: pl.LazyFrame,
     *,
     keys: str | Sequence[str] | None = None,
+    positional: bool = False,
     compare: Sequence[str] | None = None,
     exclude: Sequence[str] | None = None,
     normalise: str | NormaliserFn | Sequence[str | NormaliserFn] | None = None,
@@ -140,6 +145,9 @@ def diff_lazyframes(
         source: The source data, formatted as a Polars LazyFrame.
         target: The target data, formatted as a Polars LazyFrame.
         keys: The column name(s) used to uniquely identify a row across both datasets.
+            Required unless `positional=True`.
+        positional: If True, compare rows by strict row position instead of join keys.
+            Cannot be combined with `keys`.
         compare: A specific list of columns to compare. Defaults to None (compare all
             shared columns).
         exclude: A list of columns to ignore during the comparison. Defaults to None.
@@ -157,17 +165,26 @@ def diff_lazyframes(
             and data type differences.
     """
 
-    if keys is None:
-        logger.info("No keys provided. Falling back to strict row-index positional diffing.")
+    if positional:
+        if keys is not None:
+            raise ValueError("keys and positional=True are mutually exclusive")
+        logger.info("Using strict row-index positional diffing.")
         row_key = "__sd_idx"
         source = source.with_row_index(row_key)
         target = target.with_row_index(row_key)
         key_list = [row_key]
+    elif keys is None:
+        raise ValueError(
+            "Join keys are required. Pass keys=..., or use positional=True to compare "
+            "rows by strict row position."
+        )
     else:
         key_list = [keys] if isinstance(keys, str) else list(keys)
-
-    if not key_list:
-        raise ValueError("keys must contain at least one column, or be None to use row indices")
+        if not key_list:
+            raise ValueError(
+                "keys must contain at least one column, or pass positional=True to "
+                "compare rows by strict row position."
+            )
 
     source_only_cols, target_only_cols = column_presence_differences(
         source, target, key_list
