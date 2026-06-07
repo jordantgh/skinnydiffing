@@ -121,7 +121,7 @@ def diff_lazyframes(
     source: pl.LazyFrame,
     target: pl.LazyFrame,
     *,
-    keys: str | Sequence[str],
+    keys: str | Sequence[str] | None = None,
     compare: Sequence[str] | None = None,
     exclude: Sequence[str] | None = None,
     normalise: str | NormaliserFn | Sequence[str | NormaliserFn] | None = None,
@@ -162,9 +162,17 @@ def diff_lazyframes(
             and data type differences.
     """
 
-    key_list = [keys] if isinstance(keys, str) else list(keys)
+    if keys is None:
+        logger.info("No keys provided. Falling back to strict row-index positional diffing.")
+        row_key = "__td_idx"
+        source = source.with_row_index(row_key)
+        target = target.with_row_index(row_key)
+        key_list = [row_key]
+    else:
+        key_list = [keys] if isinstance(keys, str) else list(keys)
+
     if not key_list:
-        raise ValueError("keys must contain at least one column")
+        raise ValueError("keys must contain at least one column, or be None to use row indices")
 
     join_type = _validate_join_type(join_type)
 
