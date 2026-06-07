@@ -43,8 +43,7 @@ def diff(
     collect_lazy_inputs: bool = False,
 ) -> DiffResult:
     """
-    Compare two datasets and return a detailed record of every cell, row, and column
-    that differs.
+    Compare two datasets and return a record of every cell, row, and column that differs.
 
     The source and target datasets are loaded, standardised using any provided
     normalisation rules, and checked to ensure the join keys do not contain duplicates.
