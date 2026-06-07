@@ -171,8 +171,8 @@ def scan_path(
         scan_target = _path_with_glob(path, glob or "*.csv")
         return pl.scan_csv(
             scan_target,
-            infer_schema_length=options.get("infer_schema_length", 10_000),
-            ignore_errors=options.get("ignore_errors", True),
+            infer_schema_length=options.get("infer_schema_length"),
+            ignore_errors=options.get("ignore_errors", False),
         )
 
     if fmt == "readstat":
