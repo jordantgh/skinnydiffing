@@ -15,6 +15,29 @@ from polars_checkpoint import checkpoint
 logger = logging.getLogger(__name__)
 
 
+def _compare_as_str(source_type: pl.DataType, target_type: pl.DataType) -> bool:
+    if source_type == target_type:
+        return False
+
+    # Preserve numeric semantics, e.g. 70000 == 70000.0.
+    if source_type.is_numeric() and target_type.is_numeric():
+        return False
+
+    if source_type.is_temporal() and target_type.is_temporal():
+        # Same temporal family is usually safe:
+        #   Datetime[ms] vs Datetime[us]
+        #   Duration[ms] vs Duration[ns]
+        #   Date vs Date
+        #   Time vs Time
+        # Different temporal families are ambiguous and/or can crash:
+        #   Date vs Datetime
+        #   Date vs Time
+        #   Datetime vs Duration
+        return source_type.base_type() != target_type.base_type()
+
+    return True
+
+
 def diff_tbls(
     source: pl.LazyFrame,
     target: pl.LazyFrame,
@@ -46,25 +69,37 @@ def diff_tbls(
     if compare_cols is None:
         compare_cols = list(source.drop(*id_cols).collect_schema().keys())
 
+    s_schema, t_schema = source.collect_schema(), target.collect_schema()
     source_cols = [pl.col(c).alias(f"s__{c}") for c in compare_cols]
     target_cols = [pl.col(c).alias(f"t__{c}") for c in compare_cols]
+
     source = source.select(*id_cols, *source_cols)
     target = target.select(*id_cols, *target_cols)
 
     joined = source.join(target, on=id_cols, how="inner", coalesce=True)
 
-    diff_structs = [
-        pl.when(~pl.col(f"s__{c}").eq_missing(pl.col(f"t__{c}")))
-        .then(
-            pl.struct(
-                pl.col(f"s__{c}").cast(pl.String).alias("source_val"),
-                pl.col(f"t__{c}").cast(pl.String).alias("target_val"),
+    diff_structs = []
+
+    for c in compare_cols:
+        s_val = pl.col(f"s__{c}")
+        t_val = pl.col(f"t__{c}")
+        s_type, t_type = s_schema[c], t_schema[c]
+        if _compare_as_str(s_type, t_type):
+            s_cmp, t_cmp = s_val.cast(pl.String), t_val.cast(pl.String)
+        else:
+            s_cmp, t_cmp = s_val, t_val
+
+        diff_structs.append(
+            pl.when(~s_cmp.eq_missing(t_cmp))
+            .then(
+                pl.struct(
+                    s_val.cast(pl.String).alias("source_val"),
+                    t_val.cast(pl.String).alias("target_val"),
+                )
             )
+            .otherwise(None)
+            .alias(c)
         )
-        .otherwise(None)
-        .alias(c)
-        for c in compare_cols
-    ]
 
     return (
         joined.select(*id_cols, *diff_structs)
