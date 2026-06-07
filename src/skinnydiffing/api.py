@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 import polars as pl
 
@@ -27,13 +27,12 @@ logger = logging.getLogger(__name__)
 def diff(
     source: TableLike | Callable[[], TableLike],
     target: TableLike | Callable[[], TableLike],
-    keys: str | Sequence[str],
+    keys: str | Sequence[str] | None,
     *,
     compare: Sequence[str] | None = None,
     exclude: Sequence[str] | None = None,
     normalise: str | NormaliserFn | Sequence[str | NormaliserFn] | None = None,
     batch_size: int | None = 50,
-    join_type: Literal["inner", "left", "full", "outer"] = "inner",
     check_keys: bool = True,
     name: str = "diff",
     source_options: Mapping[str, Any] | None = None,
@@ -49,7 +48,8 @@ def diff(
     The source and target datasets are loaded, standardised using any provided
     normalisation rules, and checked to ensure the join keys do not contain duplicates.
     The output separates structural differences (shape and data type differences) from
-    actual data differences, which are reported at the individual cell level.
+    actual data differences, which are reported at the individual cell level for rows
+    present in both datasets.
 
     Args:
         source: The source dataset. Can be a file path, a Polars or Pandas dataframe,
@@ -58,6 +58,7 @@ def diff(
         target: The target dataset to compare against the source. Accepts the same formats
             as the `source` argument.
         keys: The column name(s) used to uniquely identify a row across both datasets.
+            If None, rows are compared by strict row position.
         compare: A specific list of columns to compare. If provided, any columns not in
             this list are completely ignored. Defaults to None (compare all shared
             columns).
@@ -68,9 +69,6 @@ def diff(
         batch_size: The number of columns to process in memory at the same time during
             the cell-level comparison. Lowering this prevents out-of-memory errors on
             very wide tables. Defaults to 50.
-        join_type: The type of join used to align the datasets. 'inner' only compares rows
-            present in both datasets. 'full' compares shared rows and also identifies rows
-            unique to either side. Defaults to 'inner'.
         check_keys: Whether to verify that the key columns strictly uniquely identify
             rows before diffing. If False, duplicate keys will cause a row explosion
             during the join. Defaults to True.
@@ -111,7 +109,6 @@ def diff(
         exclude=exclude,
         normalise=normalise,
         batch_size=batch_size,
-        join_type=join_type,
         check_keys=check_keys,
         name=name,
     )
@@ -126,7 +123,6 @@ def diff_lazyframes(
     exclude: Sequence[str] | None = None,
     normalise: str | NormaliserFn | Sequence[str | NormaliserFn] | None = None,
     batch_size: int | None = 50,
-    join_type: Literal["inner", "left", "full", "outer"] = "inner",
     check_keys: bool = True,
     name: str = "diff",
 ) -> DiffResult:
@@ -136,9 +132,9 @@ def diff_lazyframes(
 
     Structural differences (shape and data type differences) are computed first.
     The intersecting columns are then aligned, passed through any requested normalisation
-    functions, and validated for unique keys. Finally, source-only and target-only rows
-    are identified before the datasets are joined to generate the cell-by-cell difference
-    table.
+    functions, and validated for unique keys. Source-only and target-only rows are
+    reported separately. The cell-by-cell difference table compares only rows present in
+    both datasets.
 
     Args:
         source: The source data, formatted as a Polars LazyFrame.
@@ -151,7 +147,6 @@ def diff_lazyframes(
             to standardise the data before comparing.
         batch_size: The number of columns to process in memory at the same time during
             the cell-level comparison. Defaults to 50.
-        join_type: The type of join used to align the datasets. Defaults to 'inner'.
         check_keys: Whether to verify that the key columns strictly uniquely identify rows
             before diffing. Defaults to True.
         name: A label for this comparison. Defaults to "diff".
@@ -173,8 +168,6 @@ def diff_lazyframes(
 
     if not key_list:
         raise ValueError("keys must contain at least one column, or be None to use row indices")
-
-    join_type = _validate_join_type(join_type)
 
     source_only_cols, target_only_cols = column_presence_differences(
         source, target, key_list
@@ -205,7 +198,7 @@ def diff_lazyframes(
     )
 
     if batch_size is None or batch_size <= 0 or batch_size >= len(cols):
-        diff_table = diff_tbls(source, target, key_list, cols, join_type=join_type)
+        diff_table = diff_tbls(source, target, key_list, cols)
     else:
         diff_table = batch_diff_tbls(
             source,
@@ -213,7 +206,6 @@ def diff_lazyframes(
             key_list,
             cols,
             batch_size=batch_size,
-            join_type=join_type,
         )
 
     return DiffResult(
@@ -225,16 +217,6 @@ def diff_lazyframes(
         target_only_cols=target_only_cols,
         type_differences=type_diffs,
     )
-
-
-def _validate_join_type(
-    join_type: Literal["inner", "left", "full", "outer"],
-) -> Literal["inner", "left", "full"]:
-    if join_type == "outer":
-        return "full"
-    if join_type not in {"inner", "left", "full"}:
-        raise ValueError("join_type must be one of: 'inner', 'left', 'full', 'outer'")
-    return join_type
 
 
 def _apply_normalisation(

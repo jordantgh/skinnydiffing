@@ -52,7 +52,6 @@ class TestCoreDiffing:
             target=target_data,
             id_cols=["pk_1", "pk_2"],
             compare_cols=["name", "status", "score"],
-            join_type="inner",
         ).collect()
 
         # Assert

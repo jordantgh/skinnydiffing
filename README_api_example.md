@@ -17,6 +17,9 @@ diff_df = result.diff.collect()
 result.write("./diff_output_directory")
 ```
 
+Cell differences are always computed for rows present in both datasets. Rows that exist
+only in the source or only in the target are reported separately on the result object.
+
 Supported inputs:
 
 ```python

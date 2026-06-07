@@ -21,13 +21,6 @@ app = typer.Typer(
 )
 
 
-class JoinType(StrEnum):
-    inner = "inner"
-    left = "left"
-    full = "full"
-    outer = "outer"
-
-
 class FileFormat(StrEnum):
     parquet = "parquet"
     csv = "csv"
@@ -161,13 +154,6 @@ def diff_command(
             ),
         ),
     ] = None,
-    join: Annotated[
-        JoinType,
-        typer.Option(
-            "--join",
-            help="Row alignment strategy.",
-        ),
-    ] = JoinType.inner,
     batch_size: Annotated[
         int,
         typer.Option(
@@ -268,7 +254,6 @@ def diff_command(
         exclude=exclude_cols,
         normalise=normalisers,
         batch_size=None if batch_size <= 0 else batch_size,
-        join_type=join.value,
         check_keys=check_keys,
         name=name,
         source_options=source_options,

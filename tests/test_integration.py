@@ -64,7 +64,6 @@ class TestIntegration:
             source=source_data,
             target=target_data,
             keys=["employee_id"],
-            join_type="inner",
         )
 
         # Assert

@@ -8,7 +8,6 @@ cell that differs between two LazyFrames.
 from __future__ import annotations
 
 import logging
-from typing import Literal
 
 import polars as pl
 from polars_checkpoint import checkpoint
@@ -21,16 +20,16 @@ def diff_tbls(
     target: pl.LazyFrame,
     id_cols: list[str],
     compare_cols: list[str] | None = None,
-    join_type: Literal["inner", "left", "right", "full"] = "inner",
 ) -> pl.LazyFrame:
     """
     Compare intersecting columns between two dataframes and return a long-format
     dataframe containing only the cells that differ.
 
-    The source and target datasets are joined on the provided key columns. For each column
-    being compared, values from both datasets are checked for equality. Mismatched
-    values are bundled together, and the resulting wide table is melted down into a
-    long format where each row represents a single altered cell.
+    The source and target datasets are inner-joined on the provided key columns, so only
+    rows present in both datasets are compared at the cell level. For each column being
+    compared, values from both datasets are checked for equality. Mismatched values are
+    bundled together, and the resulting wide table is melted down into a long format
+    where each row represents a single altered cell.
 
     Args:
         source: The source data, formatted as a Polars LazyFrame.
@@ -38,7 +37,6 @@ def diff_tbls(
         id_cols: The column names used to join the two dataframes.
         compare_cols: The exact list of non-key columns to compare. If None, it compares
             every column that exists in the `source` dataframe except the keys.
-        join_type: The type of join used to combine the dataframes.
 
     Returns:
         pl.LazyFrame: A long-format dataframe containing the join keys, `col_name`,
@@ -53,7 +51,7 @@ def diff_tbls(
     source = source.select(*id_cols, *source_cols)
     target = target.select(*id_cols, *target_cols)
 
-    joined = source.join(target, on=id_cols, how=join_type, coalesce=True)
+    joined = source.join(target, on=id_cols, how="inner", coalesce=True)
 
     diff_structs = [
         pl.when(~pl.col(f"s__{c}").eq_missing(pl.col(f"t__{c}")))
@@ -92,7 +90,6 @@ def batch_diff_tbls(
     id_cols: list[str],
     compare_cols: list[str] | None = None,
     batch_size: int = 50,
-    join_type: Literal["inner", "left", "right", "full"] = "inner",
 ) -> pl.LazyFrame:
     """
     Split the column-by-column comparison into smaller batches to prevent out-of-memory
@@ -109,7 +106,6 @@ def batch_diff_tbls(
         compare_cols: The exact list of non-key columns to compare. If None, all shared
             columns are compared.
         batch_size: The maximum number of columns to evaluate in a single pass.
-        join_type: The type of join used to combine the dataframes.
 
     Returns:
         pl.LazyFrame: A concatenated long-format dataframe containing the differences
@@ -123,7 +119,7 @@ def batch_diff_tbls(
     for i in range(0, n, batch_size):
         batch = compare_cols[i : i + batch_size]
         logger.info("  batch %d-%d of %d columns", i + 1, min(i + len(batch), n), n)
-        diff = diff_tbls(source, target, id_cols, batch, join_type=join_type)
+        diff = diff_tbls(source, target, id_cols, batch)
         parts.append(checkpoint(diff))
 
     return pl.concat(parts)

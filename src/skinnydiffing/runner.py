@@ -47,7 +47,6 @@ def run_comparison(
         exclude=job.get("exclude"),
         normalise=job.get("normalise"),
         batch_size=job.get("batch_size", 50),
-        join_type=job.get("join_type", "inner"),
         check_keys=job.get("check_keys", True),
         source_options=job.get("source_options"),
         target_options=job.get("target_options"),
